@@ -1,3 +1,5 @@
+
+import { useEffect } from "react";
 import styled from "styled-components";
 import { auth, provider, signInWithPopup } from "../firebase";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,19 +18,42 @@ const Header = (props) => {
     const userName = useSelector(selectUserName);
     const userPhoto = useSelector(selectUserPhoto);
 
-    /* DEBUG */
+    /* DEBUG */ 
     console.log("selectUserName = ", selectUserName);
     console.log("userName = ", userName);
+
+    useEffect(() => {
+        auth.onAuthStateChanged(async (user) => {
+            if(user){
+                setUser(user);
+                navigate("/home");
+            }
+        });
+    },[userName]);
+
+
     const handleAuth = () => {
-        signInWithPopup(auth, provider)
-        .then((result) => {
-            console.log("SignInWithPopup is successful. Check result below");
-            console.log(result);
-            setUser(result.user);
-        })
-        .catch((error) => {
-            console.log("signInWithPopup failed with the message as following = ", error.message);
-        })
+        
+        if(!userName){
+            signInWithPopup(auth, provider)
+            .then((result) => {
+                console.log("SignInWithPopup is successful. Check result below");
+                console.log(result);
+                setUser(result.user);
+            })
+            .catch((error) => {
+                console.log("signInWithPopup failed with the message as following = ", error.message);
+            })
+        } else {
+            auth.signOut()
+            .then(() => {
+                dispatch(setSignOutState());
+                navigate("/");
+            })
+            .catch((error) => {
+                console.log("Sign out FAILED With message = ",error.message);
+            })
+        }
     };
 
     const setUser = (user) => {
@@ -76,7 +101,12 @@ const Header = (props) => {
                             <span>SERIES</span>
                         </a>
                     </NavMenu>
-                    <UserImage src={userPhoto} alt={userName} />
+                    <SignOut>
+                        <UserImage src={userPhoto} alt={userName} />
+                        <DropDown>
+                            <span onClick={handleAuth}>Sign Out</span>
+                        </DropDown>
+                    </SignOut>
                 </>
             )}
         </Nav>
@@ -184,11 +214,51 @@ const Login = styled.a`
         background-color: #f9f9f9;
         color: #000;
         border-color: transparent;
+        cursor: default;
     }
 `;
 
 const UserImage = styled.img`
     height: 100%;
 `
+
+const DropDown = styled.div`
+    position: absolute;
+    top: 48px;
+    right:0px;
+    width: 100px;
+    background: rgb(19,19,19);
+    border: 1px solid rgba(151, 151, 151, 0.34);
+    border-radius: 4px;
+    box-shadow: rgb(0 0 0 / 50%) 0px 0px 18px 0px;
+    padding: 10px;
+    font-size: 14px;
+    letter-spacing: 3px;
+    opacity: 0;
+`;
+
+const SignOut = styled.div`
+    position: relative;
+    height: 48px;
+    width: 48px;
+    display: flex;
+    cursor:pointer;
+    align-items: center;
+    justify-content: center;
+
+    ${UserImage} {
+        border-radius: 50%;
+        width: 100%;
+        height: 100%;
+    }
+
+    &:hover {
+        ${DropDown} {
+            opacity: 1;
+            transition-duration: 1s;
+        }
+    }
+`;
+
 
 export default Header;
